@@ -14,8 +14,8 @@ int port = 8888; //Port #
 WiFiServer server(port);
 
 //Connect server to WiFi
-const char *ssid = ""; //Network name
-const char *password = ""; //Network pass
+const char *ssid = "LAN Before Time"; //Network name
+const char *password = "!Stanfield@h0m3#router!"; //Network pass
 
 //Global variables
 CRGB leds[NUM_LEDS];
@@ -66,29 +66,37 @@ void loop() {
       while(client.available()>0){
         // Read data from the connected client
         received = client.read();
-        fullMsg += received;
-        Serial.write(received); 
-        if (received == '0'){
-          Serial.write("Received a 0! Turning lights off...");
-          turnOff();
+        while (received != ';') {
+          fullMsg += received;
+          received = client.read();
+          Serial.write(received); 
+          // If statements were here ******
         }
-        else if (received == '1'){
-          Serial.write("Received a 1! Turning lights red...");
-          fullRed();
+        if (fullMsg.equals("0")){
+            Serial.write("Received a 0! Turning lights off...");
+            turnOff();
+          }
+          else if (fullMsg.equals("1")){
+            Serial.write("Received a 1! Turning lights red...");
+            fullColor('r');
+          }
+          else if (fullMsg.equals("2")){
+            Serial.write("Received a 2! Turning lights blue...");
+            fullColor('b');
+          }
+          else if (fullMsg.equals("3")){
+            Serial.write("Received a 3! Turning lights green...");
+            fullColor('g');
+          }
+          else if (fullMsg.startsWith("f")) {
+            Serial.write("Received a hex color.");
+            handleHexColor(fullMsg);
+          }
+        //Send Data to connected client
+        while(Serial.available()>0)
+        {
+          client.write(Serial.read());
         }
-        else if (received == '2'){
-          Serial.write("Received a 2! Turning lights blue...");
-          fullBlue();
-        }
-        else if (received == '3'){
-          Serial.write("Received a 3! Turning lights green...");
-          fullGreen();
-        }
-      }
-      //Send Data to connected client
-      while(Serial.available()>0)
-      {
-        client.write(Serial.read());
       }
     }
     client.stop();
@@ -100,14 +108,25 @@ void turnOff() {
   FastLED.showColor(CRGB(0,0,0));
 }
 
-void fullRed() {
-  FastLED.showColor(CRGB(200,0,0));
+void fullColor(char color) {
+  switch (color) {
+    case 'r':
+      FastLED.showColor(CRGB(200,0,0));
+      break;
+    case 'g':
+      FastLED.showColor(CRGB(0,200,0));
+      break;
+    case 'b':
+      FastLED.showColor(CRGB(0,0,200));
+      break;
+  }
 }
 
-void fullBlue() {
-  FastLED.showColor(CRGB(0,0,200));
-}
-
-void fullGreen() {
-  FastLED.showColor(CRGB(0,200,0));
+void handleHexColor(String hex) {
+  String colorString = hex.substring(2);
+  long color = strtol(colorString.c_str(), NULL, 16);
+  
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = color;
+  }
 }
